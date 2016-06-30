@@ -4,8 +4,10 @@ import time
 
 from store import config
 
+
 storelog = None
 httplog = None
+
 
 class Log(object):
     def __init__(self, log):
@@ -41,6 +43,7 @@ class Log(object):
     def exception(self):
         self.error('Caught exception:\n\t' + traceback.format_exc().replace('\n', '\n\t'))
 
+
 class HTTPLog(Log):
     def __init__(self, log, access_log):
         Log.__init__(self, log)
@@ -57,6 +60,7 @@ class HTTPLog(Log):
 
     def request(self, host, request, code='-', size='-', rfc931='-', authuser='-'):
         self.access_write(host + ' ' + rfc931 + ' ' + authuser + ' ' + self.timestamp() + ' "' + request + '" ' + code + ' ' + size + '\n')
+
 
 storelog = Log(config.log)
 httplog = HTTPLog(config.log, config.httplog)
