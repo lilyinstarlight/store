@@ -40,9 +40,9 @@ class Store(web.file.FileHandler):
         return web.file.ModifyMixIn.do_put(self)
 
 
-routes.extend({'/': Page, '/api': Root, '/api/([a-zA-Z0-9./_-]*)': Interface})
-routes.extend(web.file.new(config.dir + '/upload', '/store', handler=Store))
-error_routes.extend(web.json.new_error())
+routes.update({'/': Page, '/api': Root, '/api/([a-zA-Z0-9./_-]*)': Interface})
+routes.update(web.file.new(config.dir + '/upload', '/store', handler=Store))
+error_routes.update(web.json.new_error())
 
 
 def start():
