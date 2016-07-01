@@ -1,22 +1,22 @@
 def iter():
-    pass
+    return iter(storage_db)
 
 
-def create():
-    pass
+def create(alias=None):
+    if alias is None:
+        pass
 
-
-def check(alias):
-    pass
+    return storage_db.Entry(alias)
 
 
 def retrieve(alias):
-    pass
-
-
-def modify(alias):
-    pass
+    return storage_db[alias]
 
 
 def remove(alias):
-    pass
+    os.remove(config.dir + '/upload/' + alias)
+
+    del storage_db[alias]
+
+
+storage_db = db.Database(config.dir + 'storage.db', ['alias', 'filename', 'type', 'size', 'date', 'expire'])

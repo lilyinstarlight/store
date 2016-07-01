@@ -1,3 +1,5 @@
+import time
+
 from store.lib import web
 
 from store import log, storage
@@ -9,6 +11,25 @@ routes = {}
 error_routes = {}
 
 
+def create(body, date, alias=None):
+    entry = storage.create(alias)
+
+    entry.alias = body['alias']
+    entry.filename = body['filename']
+    entry.type = body['type']
+
+    entry.size = body['size']
+    entry.date = date
+
+    entry.expire = body['expire']
+
+    return entry
+
+
+def ouput(entry):
+    return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire}
+
+
 class Page(web.page.PageHandler):
     page = 'html/index.html'
 
@@ -18,23 +39,47 @@ class Root(web.json.JSONHandler):
         return 200, list(storage.iter())
 
     def do_post(self):
-        return 201, storage.create()
+        entry = create(self.request.body, time.asctime())
+
+        return 201, output(entry)
 
 
 class Interface(web.json.JSONHandler):
     def do_get(self):
-        return 200, storage.retrieve(self.groups[0])
+        try:
+            return 200, output(storage.retrieve(self.groups[0]))
+        except KeyError:
+            raise web.HTTPError(404)
 
     def do_put(self):
-        return 200, storage.modify(self.groups[0], self.request.body)
+        try:
+            entry = storage.retrieve(self.groups[0])
+
+            entry.expire = self.request.body['expire']
+
+            return 204, ''
+        except KeyError:
+            entry = create(self.request.body, time.asctime(), self.groups[0])
+
+            return 201, output(entry)
 
     def do_delete(self):
-        return 200, storage.remove(self.groups[0])
+        try:
+            storage.remove(self.groups[0])
+
+            return 204, ''
+        except KeyError:
+            raise web.HTTPError(404)
 
 
 class Store(web.file.FileHandler):
     def do_put(self):
-        if not storage.check(self.groups[0]):
+        try:
+            entry = storage.retrieve(self.groups[0])
+
+            if self.request.headers['Content-Length'] != entry.size:
+                raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
+        except KeyError:
             raise web.HTTPError(404)
 
         return web.file.ModifyMixIn.do_put(self)
