@@ -1,12 +1,19 @@
+import random
+import string
+
+
+from store import config
+
+
 def iter():
     return iter(storage_db)
 
 
 def create(alias=None):
     if alias is None:
-        pass
+        alias = ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
 
-    return storage_db.Entry(alias)
+    return storage_db.Entry(alias, '', '', 0, 0, 0)
 
 
 def retrieve(alias):
@@ -14,7 +21,11 @@ def retrieve(alias):
 
 
 def remove(alias):
-    os.remove(config.dir + '/upload/' + alias)
+    # ignore errors deleting file
+    try:
+        os.remove(config.dir + '/upload/' + alias)
+    except:
+        pass
 
     del storage_db[alias]
 
