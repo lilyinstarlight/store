@@ -16,7 +16,11 @@ def create(entry, body, date):
     entry.filename = body['filename']
     entry.type = body['type']
 
-    entry.size = body['size']
+    try:
+        entry.size = int(body['size'])
+    except ValueError:
+        raise web.HTTPError(400, status_message='Size Must Be In Bytes')
+
     entry.date = date
 
     update(entry, body)
@@ -28,7 +32,7 @@ def update(entry, body):
     try:
         entry.expire = float(self.request.body['expire'])
     except ValueError:
-        raise web.HTTPError(400, status_message='Times Must Be In Seconds Since The Epoch')
+        raise web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
 
 
 def ouput(entry):
