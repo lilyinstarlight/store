@@ -1,3 +1,4 @@
+import os
 import time
 
 from store.lib import web
@@ -11,19 +12,23 @@ routes = {}
 error_routes = {}
 
 
-def create(body, date, alias=None):
-    entry = storage.create(alias)
-
-    entry.alias = body['alias']
+def create(entry, body, date):
     entry.filename = body['filename']
     entry.type = body['type']
 
     entry.size = body['size']
     entry.date = date
 
-    entry.expire = body['expire']
+    update(entry, body)
 
     return entry
+
+
+def update(entry, body):
+    try:
+        entry.expire = float(self.request.body['expire'])
+    except ValueError:
+        raise web.HTTPError(400, status_message='Times Must Be In Seconds Since The Epoch')
 
 
 def ouput(entry):
@@ -31,7 +36,8 @@ def ouput(entry):
 
 
 class Page(web.page.PageHandler):
-    page = 'html/index.html'
+    directory = os.path.dirname(__file__) + 'html'
+    page = 'index.html'
 
 
 class Root(web.json.JSONHandler):
@@ -39,7 +45,8 @@ class Root(web.json.JSONHandler):
         return 200, list(storage.iter())
 
     def do_post(self):
-        entry = create(self.request.body, time.asctime())
+        entry = storage.create()
+        create(entry, self.request.body, time.time())
 
         return 201, output(entry)
 
@@ -55,11 +62,12 @@ class Interface(web.json.JSONHandler):
         try:
             entry = storage.retrieve(self.groups[0])
 
-            entry.expire = self.request.body['expire']
+            update(entry, body)
 
             return 204, ''
         except KeyError:
-            entry = create(self.request.body, time.asctime(), self.groups[0])
+            entry = storage.create(self.groups[0])
+            create(entry, self.request.body, time.time())
 
             return 201, output(entry)
 
@@ -73,14 +81,30 @@ class Interface(web.json.JSONHandler):
 
 
 class Store(web.file.FileHandler):
+    def do_get(self):
+        try:
+            entry = storage.retrieve(self.groups[0])
+        except KeyError:
+            raise web.HTTPError(404)
+
+        self.response.headers['Content-Type'] = entry.type
+        self.response.headers['Content-Filename'] = entry.filename
+        self.response.headers['Last-Modified'] = web.mktime(time.gmtime(entry.date))
+        self.response.headers['Expires'] = web.mktime(time.gmtime(entry.expire))
+
+        return super().do_get()
+
     def do_put(self):
         try:
             entry = storage.retrieve(self.groups[0])
-
-            if self.request.headers['Content-Length'] != entry.size:
-                raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
         except KeyError:
             raise web.HTTPError(404)
+
+        if self.request.headers['Content-Length'] != entry.size:
+            raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
+
+        if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
+            raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
         return web.file.ModifyMixIn.do_put(self)
 
