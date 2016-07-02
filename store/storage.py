@@ -4,6 +4,8 @@ import string
 
 from store import config
 
+from store.lib import db
+
 
 def iter():
     return iter(storage_db)

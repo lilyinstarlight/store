@@ -2,6 +2,7 @@ import os
 import time
 
 from store.lib import web
+from store.lib.web import file, json, page
 
 from store import log, storage
 
@@ -39,12 +40,12 @@ def ouput(entry):
     return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire}
 
 
-class Page(web.page.PageHandler):
+class Page(page.PageHandler):
     directory = os.path.dirname(__file__) + 'html'
     page = 'index.html'
 
 
-class Root(web.json.JSONHandler):
+class Root(json.JSONHandler):
     def do_get(self):
         return 200, list(storage.iter())
 
@@ -55,7 +56,7 @@ class Root(web.json.JSONHandler):
         return 201, output(entry)
 
 
-class Interface(web.json.JSONHandler):
+class Interface(json.JSONHandler):
     def do_get(self):
         try:
             return 200, output(storage.retrieve(self.groups[0]))
@@ -84,7 +85,7 @@ class Interface(web.json.JSONHandler):
             raise web.HTTPError(404)
 
 
-class Store(web.file.FileHandler):
+class Store(file.FileHandler):
     def do_get(self):
         try:
             entry = storage.retrieve(self.groups[0])
@@ -110,12 +111,12 @@ class Store(web.file.FileHandler):
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
             raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        return web.file.ModifyMixIn.do_put(self)
+        return file.ModifyMixIn.do_put(self)
 
 
 routes.update({'/': Page, '/api': Root, '/api/([a-zA-Z0-9./_-]*)': Interface})
-routes.update(web.file.new(config.dir + '/upload', '/store', handler=Store))
-error_routes.update(web.json.new_error())
+routes.update(file.new(config.dir + '/upload', '/store', handler=Store))
+error_routes.update(json.new_error())
 
 
 def start():
