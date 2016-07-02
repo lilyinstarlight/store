@@ -1,3 +1,5 @@
+import time
+
 from store.lib import cron
 
 from store import config, log, storage
@@ -9,7 +11,7 @@ scheduler = None
 def prune():
     date = time.time()
 
-    for entry in storage.iter():
+    for entry in storage.values():
         if entry.expire <= date:
             # ignore errors and keep going
             try:

@@ -7,7 +7,7 @@ from store import config
 from store.lib import db
 
 
-def iter():
+def values():
     return iter(storage_db)
 
 
@@ -15,7 +15,7 @@ def create(alias=None):
     if alias is None:
         alias = ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
 
-    return storage_db.Entry(alias, '', '', 0, 0, 0)
+    return storage_db.add(alias, '', '', 0, 0, 0)
 
 
 def retrieve(alias):

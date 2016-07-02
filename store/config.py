@@ -10,3 +10,6 @@ dir = '/var/lib/store/'
 
 # number of random characters to use
 random = 6
+
+# address to listen on
+addr = ('', 8080)

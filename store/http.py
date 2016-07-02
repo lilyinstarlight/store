@@ -1,10 +1,9 @@
 import os
 import time
 
-from store.lib import web
-from store.lib.web import file, json, page
+from store.lib import web, file, json, page
 
-from store import log, storage
+from store import config, log, storage
 
 
 http = None
@@ -31,25 +30,28 @@ def create(entry, body, date):
 
 def update(entry, body):
     try:
-        entry.expire = float(self.request.body['expire'])
+        entry.expire = float(body['expire'])
     except ValueError:
         raise web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
 
 
-def ouput(entry):
+def output(entry):
     return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire}
 
 
 class Page(page.PageHandler):
-    directory = os.path.dirname(__file__) + 'html'
+    directory = os.path.dirname(__file__) + '/html'
     page = 'index.html'
 
 
 class Root(json.JSONHandler):
     def do_get(self):
-        return 200, list(storage.iter())
+        return 200, list(storage.values())
 
     def do_post(self):
+        if self.request.headers.get('Content-Type') != 'application/json':
+            raise web.HTTPError(400, status_message='Body Must Be JSON')
+
         entry = storage.create()
         create(entry, self.request.body, time.time())
 
@@ -64,10 +66,13 @@ class Interface(json.JSONHandler):
             raise web.HTTPError(404)
 
     def do_put(self):
+        if self.request.headers.get('Content-Type') != 'application/json':
+            raise web.HTTPError(400, status_message='Body Must Be JSON')
+
         try:
             entry = storage.retrieve(self.groups[0])
 
-            update(entry, body)
+            update(entry, self.request.body)
 
             return 204, ''
         except KeyError:
@@ -105,7 +110,7 @@ class Store(file.FileHandler):
         except KeyError:
             raise web.HTTPError(404)
 
-        if self.request.headers['Content-Length'] != entry.size:
+        if self.request.headers['Content-Length'] != str(entry.size):
             raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
 
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
@@ -114,7 +119,7 @@ class Store(file.FileHandler):
         return file.ModifyMixIn.do_put(self)
 
 
-routes.update({'/': Page, '/api': Root, '/api/([a-zA-Z0-9./_-]*)': Interface})
+routes.update({'/': Page, '/api': Root, '/api(/[a-zA-Z0-9./_-]*)': Interface})
 routes.update(file.new(config.dir + '/upload', '/store', handler=Store))
 error_routes.update(json.new_error())
 

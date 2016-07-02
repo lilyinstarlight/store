@@ -41,8 +41,8 @@ class Log(object):
     def error(self, message):
         self.message('ERROR: ' + message)
 
-    def exception(self):
-        self.error('Caught exception:\n\t' + traceback.format_exc().replace('\n', '\n\t'))
+    def exception(self, message='Caught Exception'):
+        self.error(message + ':\n\t' + traceback.format_exc().replace('\n', '\n\t'))
 
 
 class HTTPLog(Log):
