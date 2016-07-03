@@ -87,7 +87,11 @@ def remove(namespace, alias):
         dbfile = nsfile(namespace)
 
         os.remove(dbfile)
-        os.removedirs(os.path.dirname(dbfile))
+
+        try:
+            os.removedirs(os.path.dirname(dbfile))
+        except:
+            log.storelog.exception()
 
 
 ns_db = db.Database(trunk + 'ns.db', ['namespace'])
