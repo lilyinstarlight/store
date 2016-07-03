@@ -72,7 +72,11 @@ class Namespace(json.JSONHandler):
             raise web.HTTPError(400, status_message='Body Must Be JSON')
 
         entry = storage.create(self.namespace)
-        create(entry, self.request.body, time.time())
+
+        try:
+            create(entry, self.request.body, time.time())
+        except KeyError:
+            raise web.HTTPError(400, status_message='Not Enough Fields')
 
         self.response.headers['Location'] = self.request.resource + entry.alias
 
@@ -102,12 +106,19 @@ class Interface(json.JSONHandler):
         try:
             entry = storage.retrieve(self.namespace, self.alias)
 
-            update(entry, self.request.body)
+            try:
+                update(entry, self.request.body)
+            except KeyError:
+                raise web.HTTPError(400, status_message='Not Enough Fields')
 
             return 200, output(entry)
         except KeyError:
             entry = storage.create(self.namespace, self.alias)
-            create(entry, self.request.body, time.time())
+
+            try:
+                create(entry, self.request.body, time.time())
+            except KeyError:
+                raise web.HTTPError(400, status_message='Not Enough Fields')
 
             return 201, output(entry)
 
