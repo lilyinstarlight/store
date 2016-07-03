@@ -63,8 +63,13 @@ def retrieve(namespace, alias):
 
 
 def remove(namespace, alias):
+    if namespace == '/':
+        storepath = path + namespace
+    else:
+        storepath = path + namespace + '/'
+
     try:
-        os.remove(path + namespace + '/' + alias)
+        os.remove(storepath + alias)
     except:
         log.storelog.exception()
 
@@ -72,7 +77,7 @@ def remove(namespace, alias):
 
     if len(namespace_dbs[namespace]) == 0:
         try:
-            os.removedirs(path + namespace + '/')
+            os.removedirs(storepath)
         except:
             log.storelog.exception()
 
