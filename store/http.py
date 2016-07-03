@@ -54,11 +54,16 @@ class Namespace(json.JSONHandler):
 
             return 307, ''
 
+        self.namespace = self.groups[0]
+
+        if self.namespace == '':
+            self.namespace = '/'
+
         return super().respond()
 
     def do_get(self):
         try:
-            return 200, list(output(value) for value in storage.values(self.groups[0]))
+            return 200, list(output(value) for value in storage.values(self.namespace))
         except KeyError:
             raise web.HTTPError(404)
 
@@ -66,7 +71,7 @@ class Namespace(json.JSONHandler):
         if self.request.headers.get('Content-Type') != 'application/json':
             raise web.HTTPError(400, status_message='Body Must Be JSON')
 
-        entry = storage.create(self.groups[0])
+        entry = storage.create(self.namespace)
         create(entry, self.request.body, time.time())
 
         self.response.headers['Location'] = self.request.resource + entry.alias
@@ -75,9 +80,18 @@ class Namespace(json.JSONHandler):
 
 
 class Interface(json.JSONHandler):
+    def respond(self):
+        self.namespace = self.groups[0]
+        self.alias = self.groups[1]
+
+        if self.namespace == '':
+            self.namespace = '/'
+
+        return super().respond()
+
     def do_get(self):
         try:
-            return 200, output(storage.retrieve(self.groups[0], self.groups[1]))
+            return 200, output(storage.retrieve(self.namespace, self.alias))
         except KeyError:
             raise web.HTTPError(404)
 
@@ -86,20 +100,20 @@ class Interface(json.JSONHandler):
             raise web.HTTPError(400, status_message='Body Must Be JSON')
 
         try:
-            entry = storage.retrieve(self.groups[0], self.groups[1])
+            entry = storage.retrieve(self.namespace, self.alias)
 
             update(entry, self.request.body)
 
             return 200, output(entry)
         except KeyError:
-            entry = storage.create(self.groups[0], self.groups[1])
+            entry = storage.create(self.namespace, self.alias)
             create(entry, self.request.body, time.time())
 
             return 201, output(entry)
 
     def do_delete(self):
         try:
-            storage.remove(self.groups[0])
+            storage.remove(self.namespace)
 
             return 204, ''
         except KeyError:
@@ -116,13 +130,19 @@ class Store(web.HTTPHandler):
 
             return 307, ''
 
-        self.filename = storage.path + self.groups[0] + '/' + self.groups[1]
+        self.namespace = self.groups[0]
+        self.alias = self.groups[1]
+
+        self.filename = storage.path + self.namespace + '/' + self.alias
+
+        if self.namespace == '':
+            self.namespace = '/'
 
         return super().respond()
 
     def do_get(self):
         try:
-            entry = storage.retrieve(self.groups[0], self.groups[1])
+            entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
             raise web.HTTPError(404)
 
@@ -135,7 +155,7 @@ class Store(web.HTTPHandler):
 
     def do_put(self):
         try:
-            entry = storage.retrieve(self.groups[0], self.groups[1])
+            entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
             raise web.HTTPError(404)
 
