@@ -76,6 +76,7 @@ class Namespace(json.JSONHandler):
         try:
             create(entry, self.request.body, time.time())
         except KeyError:
+            storage.remove(self.namespace, entry.alias)
             raise web.HTTPError(400, status_message='Not Enough Fields')
 
         self.response.headers['Location'] = self.request.resource + entry.alias
@@ -109,6 +110,7 @@ class Interface(json.JSONHandler):
             try:
                 update(entry, self.request.body)
             except KeyError:
+                storage.remove(self.namespace, self.alias)
                 raise web.HTTPError(400, status_message='Not Enough Fields')
 
             return 200, output(entry)
