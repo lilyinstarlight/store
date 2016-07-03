@@ -8,9 +8,9 @@ from store import config, log
 from store.lib import db
 
 
-path = config.dir + 'upload'
-lib = config.dir + 'db'
 trunk = config.dir
+path = trunk + 'upload'
+lib = trunk + 'db'
 
 ns_db = None
 
