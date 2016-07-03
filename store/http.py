@@ -104,6 +104,9 @@ class Interface(json.JSONHandler):
 
 
 class Store(web.HTTPHandler):
+    def get_body(self):
+        return False
+
     def respond(self):
         self.filename = storage.path + self.groups[0] + '/' + self.groups[1]
 
