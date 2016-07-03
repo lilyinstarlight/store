@@ -48,12 +48,15 @@ class Page(page.PageHandler):
 
 
 class Namespace(json.JSONHandler):
-    def do_get(self):
+    def respond(self):
         if not self.request.resource.endswith('/'):
             self.response.headers['Location'] = self.request.resource + '/'
 
             return 307, ''
 
+        return super().respond()
+
+    def do_get(self):
         try:
             return 200, list(output(value) for value in storage.values(self.groups[0]))
         except KeyError:
@@ -108,6 +111,11 @@ class Store(web.HTTPHandler):
         return False
 
     def respond(self):
+        if len(self.groups) == 0:
+            self.response.headers['Location'] = self.request.resource + '/'
+
+            return 307, ''
+
         self.filename = storage.path + self.groups[0] + '/' + self.groups[1]
 
         return super().respond()
