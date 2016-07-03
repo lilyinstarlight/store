@@ -60,6 +60,8 @@ def remove(namespace, alias):
 
         del namespace_dbs[namespace]
 
+        os.remove(lib + namespace + '.db')
+
 
 ns_db = db.Database(trunk + 'ns.db', ['namespace'])
 
