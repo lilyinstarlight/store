@@ -12,6 +12,8 @@ trunk = config.dir
 path = trunk + 'upload'
 lib = trunk + 'db'
 
+max_tries = 10
+
 ns_db = None
 
 namespace_dbs = {}
@@ -45,8 +47,13 @@ def create(namespace, alias=None):
 
     if alias is None:
         alias = rand()
+        count = 1
         while alias in namespace_dbs[namespace]:
             alias = rand()
+            count += 1
+
+            if count > max_tries:
+                raise RuntimeError('max tries for random alias generation exceeded')
 
     return namespace_dbs[namespace].add(alias, '', '', 0, 0, 0)
 
