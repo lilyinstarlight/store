@@ -1,35 +1,67 @@
+import os
 import random
 import string
 
 
-from store import config
+from store import config, log
 
 from store.lib import db
 
 
-def values():
-    return iter(storage_db)
+path = config.dir + 'upload'
+lib = config.dir + 'db'
+trunk = config.dir
+
+ns_db = None
+
+namespace_dbs = {}
 
 
-def create(alias=None):
+def open(namespace):
+    return db.Database(lib + namespace + '.db', ['alias', 'filename', 'type', 'size', 'date', 'expire'])
+
+
+def namespaces():
+    return iter(namespace_dbs)
+
+
+def values(namespace):
+    return iter(namespace_dbs[namespace])
+
+
+def create(namespace, alias=None):
+    if namespace not in namespace_dbs:
+        ns_db.add(namespace)
+        namespace_dbs[namespace] = open(namespace)
+
     if alias is None:
         alias = ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
 
-    return storage_db.add(alias, '', '', 0, 0, 0)
+    return namespace_dbs[namespace].add(alias, '', '', 0, 0, 0)
 
 
-def retrieve(alias):
-    return storage_db[alias]
+def retrieve(namespace, alias):
+    return namespace_dbs[namespace][alias]
 
 
-def remove(alias):
-    # ignore errors deleting file
+def remove(namespace, alias):
     try:
-        os.remove(config.dir + '/upload/' + alias)
+        os.remove(path + namespace + '/' + alias)
     except:
-        pass
+        log.storelog.exception()
 
-    del storage_db[alias]
+    del namespace_dbs[namespace][alias]
+
+    if len(namespace_dbs[namespace]) == 0:
+        try:
+            os.removedirs(path + namespace + '/')
+        except:
+            log.storelog.exception()
+
+        del namespace_dbs[namespace]
 
 
-storage_db = db.Database(config.dir + 'storage.db', ['alias', 'filename', 'type', 'size', 'date', 'expire'])
+ns_db = db.Database(trunk + 'ns.db', ['namespace'])
+
+for entry in ns_db:
+    namespace_dbs[entry.namespace] = open(entry.namespace)

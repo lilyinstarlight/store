@@ -6,6 +6,9 @@ from store.lib import web, file, json, page
 from store import config, log, storage
 
 
+alias = '([a-zA-Z0-9._-]+)'
+namespace = '([a-zA-Z0-9._/-]*)/'
+
 http = None
 
 routes = {}
@@ -44,16 +47,26 @@ class Page(page.PageHandler):
     page = 'index.html'
 
 
-class Root(json.JSONHandler):
+class Namespace(json.JSONHandler):
     def do_get(self):
-        return 200, list(storage.values())
+        if not self.request.resource.endswith('/'):
+            self.response.headers['Location'] = self.request.resource + '/'
+
+            return 307, ''
+
+        try:
+            return 200, list(output(value) for value in storage.values(self.groups[0]))
+        except KeyError:
+            raise web.HTTPError(404)
 
     def do_post(self):
         if self.request.headers.get('Content-Type') != 'application/json':
             raise web.HTTPError(400, status_message='Body Must Be JSON')
 
-        entry = storage.create()
+        entry = storage.create(self.groups[0])
         create(entry, self.request.body, time.time())
+
+        self.response.headers['Location'] = self.request.resource + entry.alias
 
         return 201, output(entry)
 
@@ -61,7 +74,7 @@ class Root(json.JSONHandler):
 class Interface(json.JSONHandler):
     def do_get(self):
         try:
-            return 200, output(storage.retrieve(self.groups[0]))
+            return 200, output(storage.retrieve(self.groups[0], self.groups[1]))
         except KeyError:
             raise web.HTTPError(404)
 
@@ -70,13 +83,13 @@ class Interface(json.JSONHandler):
             raise web.HTTPError(400, status_message='Body Must Be JSON')
 
         try:
-            entry = storage.retrieve(self.groups[0])
+            entry = storage.retrieve(self.groups[0], self.groups[1])
 
             update(entry, self.request.body)
 
             return 204, ''
         except KeyError:
-            entry = storage.create(self.groups[0])
+            entry = storage.create(self.groups[0], self.groups[1])
             create(entry, self.request.body, time.time())
 
             return 201, output(entry)
@@ -90,10 +103,15 @@ class Interface(json.JSONHandler):
             raise web.HTTPError(404)
 
 
-class Store(file.FileHandler):
+class Store(web.HTTPHandler):
+    def respond(self):
+        self.filename = storage.path + self.groups[0] + '/' + self.groups[1]
+
+        return super().respond()
+
     def do_get(self):
         try:
-            entry = storage.retrieve(self.groups[0])
+            entry = storage.retrieve(self.groups[0], self.groups[1])
         except KeyError:
             raise web.HTTPError(404)
 
@@ -102,11 +120,11 @@ class Store(file.FileHandler):
         self.response.headers['Last-Modified'] = web.mktime(time.gmtime(entry.date))
         self.response.headers['Expires'] = web.mktime(time.gmtime(entry.expire))
 
-        return super().do_get()
+        return file.ModifyFileHandler.do_get(self)
 
     def do_put(self):
         try:
-            entry = storage.retrieve(self.groups[0])
+            entry = storage.retrieve(self.groups[0], self.groups[1])
         except KeyError:
             raise web.HTTPError(404)
 
@@ -116,11 +134,10 @@ class Store(file.FileHandler):
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
             raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        return file.ModifyMixIn.do_put(self)
+        return file.ModifyFileHandler.do_put(self)
 
 
-routes.update({'/': Page, '/api': Root, '/api(/[a-zA-Z0-9./_-]*)': Interface})
-routes.update(file.new(config.dir + '/upload', '/store', handler=Store))
+routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
 error_routes.update(json.new_error())
 
 
