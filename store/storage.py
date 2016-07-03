@@ -59,8 +59,10 @@ def remove(namespace, alias):
             log.storelog.exception()
 
         del namespace_dbs[namespace]
+        del ns_db[namespace]
 
         os.remove(lib + namespace + '.db')
+        os.removedirs(os.path.dirname(lib + namespace))
 
 
 ns_db = db.Database(trunk + 'ns.db', ['namespace'])
