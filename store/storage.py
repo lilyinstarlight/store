@@ -17,8 +17,15 @@ ns_db = None
 namespace_dbs = {}
 
 
+def nsfile(namespace):
+    if namespace == '/':
+        return trunk + 'root.db'
+    else:
+        return lib + namespace + '.db'
+
+
 def open(namespace):
-    return db.Database(lib + namespace + '.db', ['alias', 'filename', 'type', 'size', 'date', 'expire'])
+    return db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire'])
 
 
 def namespaces():
@@ -34,8 +41,12 @@ def create(namespace, alias=None):
         ns_db.add(namespace)
         namespace_dbs[namespace] = open(namespace)
 
+    rand = lambda: ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
+
     if alias is None:
-        alias = ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
+        alias = rand()
+        while alias in namespace_dbs[namespace]:
+            alias = rand()
 
     return namespace_dbs[namespace].add(alias, '', '', 0, 0, 0)
 
@@ -61,8 +72,10 @@ def remove(namespace, alias):
         del namespace_dbs[namespace]
         del ns_db[namespace]
 
-        os.remove(lib + namespace + '.db')
-        os.removedirs(os.path.dirname(lib + namespace))
+        dbfile = nsfile(namespace)
+
+        os.remove(dbfile)
+        os.removedirs(os.path.dirname(dbfile))
 
 
 ns_db = db.Database(trunk + 'ns.db', ['namespace'])
