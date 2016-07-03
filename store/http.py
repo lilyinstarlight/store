@@ -90,7 +90,7 @@ class Interface(json.JSONHandler):
 
             update(entry, self.request.body)
 
-            return 204, ''
+            return 200, output(entry)
         except KeyError:
             entry = storage.create(self.groups[0], self.groups[1])
             create(entry, self.request.body, time.time())
