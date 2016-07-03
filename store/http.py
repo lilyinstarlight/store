@@ -110,7 +110,6 @@ class Interface(json.JSONHandler):
             try:
                 update(entry, self.request.body)
             except KeyError:
-                storage.remove(self.namespace, self.alias)
                 raise web.HTTPError(400, status_message='Not Enough Fields')
 
             return 200, output(entry)
@@ -120,6 +119,7 @@ class Interface(json.JSONHandler):
             try:
                 create(entry, self.request.body, time.time())
             except KeyError:
+                storage.remove(self.namespace, self.alias)
                 raise web.HTTPError(400, status_message='Not Enough Fields')
 
             return 201, output(entry)
