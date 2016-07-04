@@ -126,7 +126,7 @@ class Interface(json.JSONHandler):
 
     def do_delete(self):
         try:
-            storage.remove(self.namespace)
+            storage.remove(self.namespace, self.alias)
 
             return 204, ''
         except KeyError:
