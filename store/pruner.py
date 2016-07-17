@@ -1,6 +1,6 @@
 import time
 
-from store.lib import cron
+import cron
 
 from store import config, log, storage
 

@@ -1,12 +1,12 @@
 # log locations
-log = '/var/log/store/store.log'
-httplog = '/var/log/store/http.log'
+log = '/home/foster/tmp/var/log/store/store.log'
+httplog = '/home/foster/tmp/var/log/store/http.log'
 
 # minute of hour to prune files
-minute = 0
+minute = 9
 
 # directory to store information
-dir = '/var/lib/store/'
+dir = '/home/foster/tmp/var/lib/store/'
 
 # number of random characters to use
 random = 6

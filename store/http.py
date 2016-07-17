@@ -1,7 +1,7 @@
 import os
 import time
 
-from store.lib import web, file, json, page
+import web, web.file, web.json, web.page
 
 from store import config, log, storage
 
@@ -42,12 +42,12 @@ def output(entry):
     return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire}
 
 
-class Page(page.PageHandler):
+class Page(web.page.PageHandler):
     directory = os.path.dirname(__file__) + '/html'
     page = 'index.html'
 
 
-class Namespace(json.JSONHandler):
+class Namespace(web.json.JSONHandler):
     def respond(self):
         if not self.request.resource.endswith('/'):
             self.response.headers['Location'] = self.request.resource + '/'
@@ -84,7 +84,7 @@ class Namespace(json.JSONHandler):
         return 201, output(entry)
 
 
-class Interface(json.JSONHandler):
+class Interface(web.json.JSONHandler):
     def respond(self):
         self.namespace = self.groups[0]
         self.alias = self.groups[1]
@@ -164,7 +164,7 @@ class Store(web.HTTPHandler):
         self.response.headers['Last-Modified'] = web.mktime(time.gmtime(entry.date))
         self.response.headers['Expires'] = web.mktime(time.gmtime(entry.expire))
 
-        return file.ModifyFileHandler.do_get(self)
+        return web.file.ModifyFileHandler.do_get(self)
 
     def do_put(self):
         try:
@@ -178,11 +178,11 @@ class Store(web.HTTPHandler):
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
             raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        return file.ModifyFileHandler.do_put(self)
+        return web.file.ModifyFileHandler.do_put(self)
 
 
 routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
-error_routes.update(json.new_error())
+error_routes.update(web.json.new_error())
 
 
 def start():

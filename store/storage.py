@@ -2,10 +2,9 @@ import os
 import random
 import string
 
+import db
 
 from store import config, log
-
-from store.lib import db
 
 
 trunk = config.dir
