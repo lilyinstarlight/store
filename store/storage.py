@@ -42,9 +42,9 @@ def create(namespace, alias=None):
         ns_db.add(namespace)
         namespace_dbs[namespace] = open(namespace)
 
-    rand = lambda: ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
-
     if alias is None:
+        rand = lambda: ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
+
         alias = rand()
         count = 1
         while alias in namespace_dbs[namespace]:
