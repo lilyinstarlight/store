@@ -1,9 +1,0 @@
-[submodule "store/lib/db.py"]
-	path = store/lib/db.py
-	url = https://github.com/fkmclane/db.py.git
-[submodule "store/lib/cron.py"]
-	path = store/lib/cron.py
-	url = https://github.com/fkmclane/cron.py.git
-[submodule "store/lib/web.py"]
-	path = store/lib/web.py
-	url = https://github.com/fkmclane/web.py.git
