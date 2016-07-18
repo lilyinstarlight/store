@@ -37,9 +37,14 @@ def update(entry, body):
     except ValueError:
         raise web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
 
+    if not isinstance(body['locked'], bool):
+        raise web.HTTPError(400, status_message='Locked Must Be A Bool')
+
+    entry.locked = body['locked']
+
 
 def output(entry):
-    return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire}
+    return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire, 'locked': entry.locked}
 
 
 class Page(web.page.PageHandler):
@@ -107,6 +112,9 @@ class Interface(web.json.JSONHandler):
         try:
             entry = storage.retrieve(self.namespace, self.alias)
 
+            if entry.locked:
+                raise web.HTTPError(403)
+
             try:
                 update(entry, self.request.body)
             except KeyError:
@@ -126,6 +134,11 @@ class Interface(web.json.JSONHandler):
 
     def do_delete(self):
         try:
+            entry = storage.retrieve(self.namespace, self.alias)
+
+            if entry.locked:
+                raise web.HTTPError(403)
+
             storage.remove(self.namespace, self.alias)
 
             return 204, ''
@@ -171,6 +184,9 @@ class Store(web.HTTPHandler):
             entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
             raise web.HTTPError(404)
+
+        if entry.locked and os.path.isfile(self.filename):
+            raise web.HTTPError(403)
 
         if self.request.headers['Content-Length'] != str(entry.size):
             raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')

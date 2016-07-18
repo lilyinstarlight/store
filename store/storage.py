@@ -26,7 +26,7 @@ def nsfile(namespace):
 
 
 def open(namespace):
-    return db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire'])
+    return db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire', 'locked'])
 
 
 def namespaces():
