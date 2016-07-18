@@ -36,7 +36,7 @@ API
 				<table>
 					<tr>
 						<td><code>GET</code></td>
-						<td>Ad get request returns a JSON object of that entry.</td>
+						<td>A get request returns a JSON object of that entry.</td>
 					</tr>
 					<tr>
 						<td><code>PUT</code></td>
@@ -56,7 +56,7 @@ API
 				<table>
 					<tr>
 						<td><code>GET</code></td>
-						<td>Ad get request returns the stored data with its metadata encoded in headers.</td>
+						<td>A get request returns the stored data with its metadata encoded in headers.</td>
 					</tr>
 					<tr>
 						<td><code>PUT</code></td>
