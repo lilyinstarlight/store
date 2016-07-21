@@ -3,7 +3,7 @@ import time
 
 import web, web.file, web.json, web.page
 
-from store import config, log, storage
+from store import config, lock, log, storage
 
 
 alias = '([a-zA-Z0-9._-]+)'
@@ -84,6 +84,9 @@ class Namespace(web.json.JSONHandler):
             storage.remove(self.namespace, entry.alias)
             raise web.HTTPError(400, status_message='Not Enough Fields')
 
+        if entry.locked:
+            lock.acquire(self.request, entry.alias, True)
+
         self.response.headers['Location'] = self.request.resource + entry.alias
 
         return 201, output(entry)
@@ -129,6 +132,9 @@ class Interface(web.json.JSONHandler):
             except KeyError:
                 storage.remove(self.namespace, self.alias)
                 raise web.HTTPError(400, status_message='Not Enough Fields')
+
+            if entry.locked:
+                lock.acquire(self.request, entry.alias, True)
 
             return 201, output(entry)
 
@@ -180,6 +186,8 @@ class Store(web.HTTPHandler):
         return web.file.ModifyFileHandler.do_get(self)
 
     def do_put(self):
+        lock.acquire(self.request, self.alias)
+
         try:
             entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
@@ -194,7 +202,11 @@ class Store(web.HTTPHandler):
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
             raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        return web.file.ModifyFileHandler.do_put(self)
+        response = web.file.ModifyFileHandler.do_put(self)
+
+        lock.release(self.alias)
+
+        return response
 
 
 routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
