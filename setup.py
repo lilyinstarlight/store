@@ -3,6 +3,7 @@ from distutils.core import setup
 
 from store import name, version
 
+
 setup(
     name=name,
     version=version,
@@ -11,4 +12,5 @@ setup(
     author='Foster McLane',
     author_email='fkmclane@gmail.com',
     packages=['store'],
+    package_data={'store': ['html/*.*']},
 )
