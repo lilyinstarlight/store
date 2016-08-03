@@ -85,7 +85,7 @@ class Namespace(web.json.JSONHandler):
             raise web.HTTPError(400, status_message='Not Enough Fields')
 
         if entry.locked:
-            lock.acquire(self.request, entry.alias, True)
+            lock.acquire(self.request, self.namespace, entry.alias, True)
 
         self.response.headers['Location'] = self.request.resource + entry.alias
 
@@ -134,7 +134,7 @@ class Interface(web.json.JSONHandler):
                 raise web.HTTPError(400, status_message='Not Enough Fields')
 
             if entry.locked:
-                lock.acquire(self.request, entry.alias, True)
+                lock.acquire(self.request, self.namespace, entry.alias, True)
 
             return 201, output(entry)
 
@@ -186,8 +186,6 @@ class Store(web.HTTPHandler):
         return web.file.ModifyFileHandler.do_get(self)
 
     def do_put(self):
-        lock.acquire(self.request, self.alias)
-
         try:
             entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
@@ -204,7 +202,8 @@ class Store(web.HTTPHandler):
 
         response = web.file.ModifyFileHandler.do_put(self)
 
-        lock.release(self.alias)
+        if entry.locked:
+            lock.release(self.request, self.namespace, self.alias)
 
         return response
 

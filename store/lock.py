@@ -3,7 +3,6 @@ import threading
 from store import log
 
 
-locks = {}
 requests = {}
 
 global_lock = threading.Lock()
@@ -12,9 +11,9 @@ global_lock = threading.Lock()
 def autorelease(self):
     try:
         # release all locks
-        for alias in requests[self]:
+        for namespace, alias in requests[self]:
             try:
-                release(alias)
+                release(self, namespace, alias)
             except Exception:
                 # do not worry about failures since
                 # they were probably already released
@@ -30,42 +29,34 @@ def autorelease(self):
     type(self).close(self)
 
 
-def acquire(request, alias, autorelease=False):
+def acquire(request, namespace, alias, autorelease=False):
+    # sanitize namespace
+    if not namespace.endswith('/'):
+        namespace += '/'
+
     with global_lock:
-        try:
-            # get the lock and request
-            lock, lock_request = locks[alias]
-        except KeyError:
-            # create the lock
-            lock = threading.Lock()
-            lock_request = request
+        # use resource lock to lock stuff
+        request.server.res_lock.acquire(request, '/api' + namespace + alias, False)
+        request.server.res_lock.acquire(request, '/store' + namespace + alias, False)
 
-            # if this lock should autorelease
-            if autorelease:
-                # set the handler
-                lock_request.close = autorelease
+        # if this lock should autorelease
+        if autorelease:
+            # set the handler
+            request.close = autorelease
 
-                # add the alias to the existing list or make a new one
-                try:
-                    requests[lock_request].append(alias)
-                except KeyError:
-                    requests[lock_request] = [alias]
-
-            # store the new lock
-            locks[alias] = (lock, lock_request)
-
-        # bypass current requests
-        if lock_request == request:
-            return
-
-    # acquire the appropriate lock like normal
-    lock.acquire()
+            # add the alias to the existing list or make a new one
+            try:
+                requests[request].append((namespace, alias))
+            except KeyError:
+                requests[request] = [(namespace, alias)]
 
 
-def release(alias):
+def release(request, namespace, alias):
+    # sanitize namespace
+    if not namespace.endswith('/'):
+        namespace += '/'
+
     with global_lock:
-        # get the lock and request (let upstream handle KeyError's)
-        lock, lock_request = locks[alias]
-
-    # release the appropriate lock like normal
-    lock.release()
+        # use resource lock to unlock stuff
+        request.server.res_lock.release('/api' + namespace + alias, False)
+        request.server.res_lock.release('/store' + namespace + alias, False)
