@@ -178,8 +178,10 @@ class Store(web.HTTPHandler):
         except KeyError:
             raise web.HTTPError(404)
 
-        self.response.headers['Content-Type'] = entry.type
-        self.response.headers['Content-Filename'] = entry.filename
+        if entry.type is not None:
+            self.response.headers['Content-Type'] = entry.type
+        if entry.filename is not None:
+            self.response.headers['Content-Filename'] = entry.filename
         self.response.headers['Last-Modified'] = web.mktime(time.gmtime(entry.date))
         self.response.headers['Expires'] = web.mktime(time.gmtime(entry.expire))
 
