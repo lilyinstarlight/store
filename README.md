@@ -74,11 +74,11 @@ API
 ### Payload
 
 ```json
-{"filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether to lock this resource>}
+{"filename": "example.txt", "size": 144, "type": "text/plain", "expire": 2147483647, "locked": true}
 ```
 
 ### Response
 
 ```json
-{"alias": <alias>, "date": <timestamp of modification>, "filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether this resource is read only>}
+{"alias": "abcd", "date": "1474826615", "filename": "example.txt", "size": "144", "type": "text/plain", "expire": 2147483647, "locked": true}
 ```

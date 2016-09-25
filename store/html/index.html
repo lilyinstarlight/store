@@ -86,9 +86,9 @@
 		</table>
 
 		<h3>Payload</h3>
-		<code><pre>{"filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether to lock this resource>}</pre></code>
+		<code>{"filename": "example.txt", "size": 144, "type": "text/plain", "expire": 2147483647, "locked": true}</code>
 
 		<h3>Response</h3>
-		<code><pre>{"alias": <alias>, "date": <timestamp of modification>, "filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether this resource is read only>}</pre></code>
+		<code>{"alias": "abcd", "date": "1474826615", "filename": "example.txt", "size": "144", "type": "text/plain", "expire": 2147483647, "locked": true}</code>
 	</body>
 </html>
