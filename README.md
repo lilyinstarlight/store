@@ -4,6 +4,9 @@ store is a web service for storing data that will automatically get deleted on i
 
 API
 ---
+
+### Endpoints
+
 <table>
 	<thead>
 		<tr>
@@ -67,3 +70,15 @@ API
 		</tr>
 	</tbody>
 </table>
+
+### Payload
+
+```json
+{"filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether to lock this resource>}
+```
+
+### Response
+
+```json
+{"alias": <alias>, "date": <timestamp of modification>, "filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether this resource is read only>}
+```

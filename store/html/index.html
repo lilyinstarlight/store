@@ -19,6 +19,8 @@
 
 	<body>
 		<p>Store is a web service for storing data that will automatically get deleted on its set expiry date. Details of the API can be found below.</p>
+
+		<h3>Endpoints</h3>
 		<table>
 			<thead>
 				<tr>
@@ -82,5 +84,11 @@
 				</tr>
 			</tbody>
 		</table>
+
+		<h3>Payload</h3>
+		<code><pre>{"filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether to lock this resource>}</pre></code>
+
+		<h3>Response</h3>
+		<code><pre>{"alias": <alias>, "date": <timestamp of modification>, "filename": <filename>, "size": <length>, "type": <MIME type>, "expire": <expiry timestamp>, "locked": <whether this resource is read only>}</pre></code>
 	</body>
 </html>
