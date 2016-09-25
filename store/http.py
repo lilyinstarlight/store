@@ -203,7 +203,7 @@ class Store(web.HTTPHandler):
         response = web.file.ModifyFileHandler.do_put(self)
 
         if entry.locked:
-            lock.release(self.request, self.namespace, self.alias)
+            lock.release(self.request, self.namespace, self.alias, True)
 
         return response
 
@@ -215,7 +215,7 @@ error_routes.update(web.json.new_error())
 def start():
     global http
 
-    http = web.HTTPServer(config.addr, routes, error_routes, log=log.httplog)
+    http = web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60, log=log.httplog)
     http.start()
 
 

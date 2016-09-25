@@ -8,7 +8,7 @@ requests = {}
 global_lock = threading.Lock()
 
 
-def autorelease(self):
+def close(self):
     try:
         # release all locks
         for namespace, alias in requests[self]:
@@ -42,7 +42,7 @@ def acquire(request, namespace, alias, autorelease=False):
         # if this lock should autorelease
         if autorelease:
             # set the handler
-            request.close = autorelease
+            request.close = close.__get__(request, request.__class__)
 
             # add the alias to the existing list or make a new one
             try:
@@ -51,12 +51,21 @@ def acquire(request, namespace, alias, autorelease=False):
                 requests[request] = [(namespace, alias)]
 
 
-def release(request, namespace, alias):
+def release(request, namespace, alias, store=False):
     # sanitize namespace
     if not namespace.endswith('/'):
         namespace += '/'
 
     with global_lock:
-        # use resource lock to unlock stuff
-        request.server.res_lock.release('/api' + namespace + alias, False)
-        request.server.res_lock.release('/store' + namespace + alias, False)
+        try:
+            # use resource lock to unlock stuff
+            request.server.res_lock.release('/api' + namespace + alias, False)
+        except KeyError:
+            # ignore
+            pass
+
+        try:
+            request.server.res_lock.release('/store' + namespace + alias, False, not store)
+        except KeyError:
+            # ignore
+            pass
