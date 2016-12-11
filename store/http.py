@@ -48,7 +48,7 @@ def output(entry):
 
 
 class Page(web.page.PageHandler):
-    directory = os.path.dirname(__file__) + '/html'
+    directory = config.template
     page = 'index.html'
 
 

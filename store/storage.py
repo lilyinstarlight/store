@@ -7,7 +7,7 @@ import db
 from store import config, log
 
 
-trunk = config.dir
+trunk = config.dir + '/'
 path = trunk + 'upload'
 lib = trunk + 'db'
 
