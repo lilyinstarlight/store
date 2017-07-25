@@ -39,7 +39,8 @@ def values(namespace):
 
 def create(namespace, alias=None):
     if namespace not in namespace_dbs:
-        ns_db.add(namespace)
+        if namespace not in ns_db:
+            ns_db.add(namespace)
         namespace_dbs[namespace] = open(namespace)
 
     if alias is None:
@@ -58,6 +59,11 @@ def create(namespace, alias=None):
 
 
 def retrieve(namespace, alias):
+    if namespace not in namespace_dbs and namespace in ns_db:
+        namespace_dbs[namespace] = open(namespace)
+    elif namespace not in ns_db and namespace in namespace_dbs:
+        del namespace_dbs[namespace]
+
     return namespace_dbs[namespace][alias]
 
 
