@@ -3,16 +3,7 @@ import time
 
 import web, web.file, web.json, web.page
 
-from store import config, lock, log, storage
-
-
-alias = '([a-zA-Z0-9._-]+)'
-namespace = '([a-zA-Z0-9._/-]*)/'
-
-http = None
-
-routes = {}
-error_routes = {}
+from store import config, lock, storage
 
 
 def create(entry, body, date):
@@ -210,6 +201,15 @@ class Store(web.HTTPHandler):
         return response
 
 
+alias = '([a-zA-Z0-9._-]+)'
+namespace = '([a-zA-Z0-9._/-]*)/'
+
+http = None
+
+routes = {}
+error_routes = {}
+
+
 routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
 error_routes.update(web.json.new_error())
 
@@ -217,7 +217,7 @@ error_routes.update(web.json.new_error())
 def start():
     global http
 
-    http = web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60, log=log.httplog)
+    http = web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60)
     http.start()
 
 
@@ -226,3 +226,9 @@ def stop():
 
     http.stop()
     http = None
+
+
+def join():
+    global http
+
+    http.join()

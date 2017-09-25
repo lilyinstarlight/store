@@ -6,7 +6,7 @@ dir = '/var/lib/store'
 
 # log locations
 log = '/var/log/store/store.log'
-httplog = '/var/log/store/http.log'
+http_log = '/var/log/store/http.log'
 
 # template directory to use
 import os.path

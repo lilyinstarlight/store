@@ -1,9 +1,12 @@
+import logging
 import time
 
 import cron
 
-from store import config, log, storage
+from store import config, storage
 
+
+log = logging.getLogger('store')
 
 scheduler = None
 
@@ -11,7 +14,7 @@ scheduler = None
 def prune():
     date = time.time()
 
-    log.storelog.info('Pruning...')
+    log.info('Pruning...')
 
     todo = []
 
@@ -28,13 +31,13 @@ def prune():
         except:
             pass
 
-    log.storelog.info('Done. Removed ' + str(len(todo)) + ' items.')
+    log.info('Done. Removed ' + str(len(todo)) + ' items.')
 
 
 def start():
     global scheduler
 
-    scheduler = cron.Scheduler(log=log.storelog)
+    scheduler = cron.Scheduler()
     scheduler.add(cron.Job(prune, minute=config.minute))
     scheduler.start()
 

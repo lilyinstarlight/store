@@ -1,2 +1,2 @@
 name = 'store'
-version = '0.0a0'
+version = '0.1a0'

@@ -1,11 +1,14 @@
+import logging
 import os
 import random
 import string
 
 import db
 
-from store import config, log
+from store import config
 
+
+log = logging.getLogger('store')
 
 trunk = config.dir + '/'
 path = trunk + 'upload'
@@ -76,7 +79,7 @@ def remove(namespace, alias):
     try:
         os.remove(storepath + alias)
     except:
-        log.storelog.exception()
+        log.exception()
 
     del namespace_dbs[namespace][alias]
 

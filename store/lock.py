@@ -1,17 +1,16 @@
-import threading
+import logging
+import multiprocessing
 
-from store import log
 
+global_lock = multiprocessing.Lock()
 
-requests = {}
-
-global_lock = threading.Lock()
+log = logging.getLogger('store')
 
 
 def close(self):
     try:
         # release all locks
-        for namespace, alias in requests[self]:
+        for namespace, alias in self.store_locks:
             try:
                 release(self, namespace, alias)
             except Exception:
@@ -19,12 +18,9 @@ def close(self):
                 # they were probably already released
                 # when the file was successfully uploaded
                 pass
-
-        # remove now unnecessary requests list
-        del requests[self]
     except KeyError:
         # do not worry about not being found (NOTE: might leave dangling locks)
-        self.storelog.exception()
+        log.exception()
 
     type(self).close(self)
 
@@ -46,9 +42,9 @@ def acquire(request, namespace, alias, autorelease=False):
 
             # add the alias to the existing list or make a new one
             try:
-                requests[request].append((namespace, alias))
-            except KeyError:
-                requests[request] = [(namespace, alias)]
+                request.store_locks.append((namespace, alias))
+            except AttributeError:
+                request.store_locks = [(namespace, alias)]
 
 
 def release(request, namespace, alias, store=False):
@@ -60,12 +56,12 @@ def release(request, namespace, alias, store=False):
         try:
             # use resource lock to unlock stuff
             request.server.res_lock.release('/api' + namespace + alias, False)
-        except KeyError:
+        except RuntimeError:
             # ignore
             pass
 
         try:
             request.server.res_lock.release('/store' + namespace + alias, False, not store)
-        except KeyError:
+        except RuntimeError:
             # ignore
             pass
