@@ -3,7 +3,7 @@ import logging
 import signal
 import sys
 
-import web
+import fooster.web
 
 from store import config
 
@@ -47,7 +47,7 @@ else:
 
 if config.http_log:
     http_log_handler = logging.FileHandler(config.http_log)
-    http_log_handler.setFormatter(web.HTTPLogFormatter())
+    http_log_handler.setFormatter(fooster.web.HTTPLogFormatter())
 
     logging.getLogger('http').addHandler(http_log_handler)
 

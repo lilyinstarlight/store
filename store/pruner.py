@@ -1,7 +1,7 @@
 import logging
 import time
 
-import cron
+import fooster.cron
 
 from store import config, storage
 
@@ -37,8 +37,8 @@ def prune():
 def start():
     global scheduler
 
-    scheduler = cron.Scheduler()
-    scheduler.add(cron.Job(prune, minute=config.minute))
+    scheduler = fooster.cron.Scheduler()
+    scheduler.add(fooster.cron.Job(prune, minute=config.minute))
     scheduler.start()
 
 

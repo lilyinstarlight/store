@@ -1,7 +1,7 @@
 import os
 import time
 
-import web, web.file, web.json, web.page
+import fooster.web, fooster.web.file, fooster.web.json, fooster.web.page
 
 from store import config, lock, storage
 
@@ -13,7 +13,7 @@ def create(entry, body, date):
     try:
         entry.size = int(body['size'])
     except ValueError:
-        raise web.HTTPError(400, status_message='Size Must Be In Bytes')
+        raise fooster.web.HTTPError(400, status_message='Size Must Be In Bytes')
 
     entry.date = date
 
@@ -26,10 +26,10 @@ def update(entry, body):
     try:
         entry.expire = float(body['expire'])
     except ValueError:
-        raise web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
+        raise fooster.web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
 
     if not isinstance(body['locked'], bool):
-        raise web.HTTPError(400, status_message='Locked Must Be A Bool')
+        raise fooster.web.HTTPError(400, status_message='Locked Must Be A Bool')
 
     entry.locked = body['locked']
 
@@ -38,12 +38,12 @@ def output(entry):
     return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire, 'locked': entry.locked}
 
 
-class Page(web.page.PageHandler):
+class Page(fooster.web.page.PageHandler):
     directory = config.template
     page = 'index.html'
 
 
-class Namespace(web.json.JSONHandler):
+class Namespace(fooster.web.json.JSONHandler):
     def respond(self):
         if not self.request.resource.endswith('/'):
             self.response.headers['Location'] = self.request.resource + '/'
@@ -61,11 +61,11 @@ class Namespace(web.json.JSONHandler):
         try:
             return 200, list(output(value) for value in storage.values(self.namespace))
         except KeyError:
-            raise web.HTTPError(404)
+            raise fooster.web.HTTPError(404)
 
     def do_post(self):
         if self.request.headers.get('Content-Type') != 'application/json':
-            raise web.HTTPError(400, status_message='Body Must Be JSON')
+            raise fooster.web.HTTPError(400, status_message='Body Must Be JSON')
 
         entry = storage.create(self.namespace)
 
@@ -73,7 +73,7 @@ class Namespace(web.json.JSONHandler):
             create(entry, self.request.body, time.time())
         except KeyError:
             storage.remove(self.namespace, entry.alias)
-            raise web.HTTPError(400, status_message='Not Enough Fields')
+            raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
 
         if entry.locked:
             lock.acquire(self.request, self.namespace, entry.alias, True)
@@ -83,7 +83,7 @@ class Namespace(web.json.JSONHandler):
         return 201, output(entry)
 
 
-class Interface(web.json.JSONHandler):
+class Interface(fooster.web.json.JSONHandler):
     def respond(self):
         self.namespace = self.groups[0]
         self.alias = self.groups[1]
@@ -97,22 +97,22 @@ class Interface(web.json.JSONHandler):
         try:
             return 200, output(storage.retrieve(self.namespace, self.alias))
         except KeyError:
-            raise web.HTTPError(404)
+            raise fooster.web.HTTPError(404)
 
     def do_put(self):
         if self.request.headers.get('Content-Type') != 'application/json':
-            raise web.HTTPError(400, status_message='Body Must Be JSON')
+            raise fooster.web.HTTPError(400, status_message='Body Must Be JSON')
 
         try:
             entry = storage.retrieve(self.namespace, self.alias)
 
             if entry.locked:
-                raise web.HTTPError(403)
+                raise fooster.web.HTTPError(403)
 
             try:
                 update(entry, self.request.body)
             except KeyError:
-                raise web.HTTPError(400, status_message='Not Enough Fields')
+                raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
 
             return 200, output(entry)
         except KeyError:
@@ -122,7 +122,7 @@ class Interface(web.json.JSONHandler):
                 create(entry, self.request.body, time.time())
             except KeyError:
                 storage.remove(self.namespace, self.alias)
-                raise web.HTTPError(400, status_message='Not Enough Fields')
+                raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
 
             if entry.locked:
                 lock.acquire(self.request, self.namespace, entry.alias, True)
@@ -134,16 +134,16 @@ class Interface(web.json.JSONHandler):
             entry = storage.retrieve(self.namespace, self.alias)
 
             if entry.locked:
-                raise web.HTTPError(403)
+                raise fooster.web.HTTPError(403)
 
             storage.remove(self.namespace, self.alias)
 
             return 204, ''
         except KeyError:
-            raise web.HTTPError(404)
+            raise fooster.web.HTTPError(404)
 
 
-class Store(web.HTTPHandler):
+class Store(fooster.web.HTTPHandler):
     def get_body(self):
         return False
 
@@ -167,33 +167,33 @@ class Store(web.HTTPHandler):
         try:
             entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
-            raise web.HTTPError(404)
+            raise fooster.web.HTTPError(404)
 
         if entry.type is not None:
             self.response.headers['Content-Type'] = entry.type
         if entry.filename is not None:
             self.response.headers['Content-Filename'] = entry.filename
-        self.response.headers['Last-Modified'] = web.mktime(time.gmtime(entry.date))
-        self.response.headers['Expires'] = web.mktime(time.gmtime(entry.expire))
+        self.response.headers['Last-Modified'] = fooster.web.mktime(time.gmtime(entry.date))
+        self.response.headers['Expires'] = fooster.web.mktime(time.gmtime(entry.expire))
 
-        return web.file.ModifyFileHandler.do_get(self)
+        return fooster.web.file.ModifyFileHandler.do_get(self)
 
     def do_put(self):
         try:
             entry = storage.retrieve(self.namespace, self.alias)
         except KeyError:
-            raise web.HTTPError(404)
+            raise fooster.web.HTTPError(404)
 
         if entry.locked and os.path.isfile(self.filename):
-            raise web.HTTPError(403)
+            raise fooster.web.HTTPError(403)
 
         if self.request.headers['Content-Length'] != str(entry.size):
-            raise web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
+            raise fooster.web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
 
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
-            raise web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
+            raise fooster.web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        response = web.file.ModifyFileHandler.do_put(self)
+        response = fooster.web.file.ModifyFileHandler.do_put(self)
 
         if entry.locked:
             lock.release(self.request, self.namespace, self.alias, True)
@@ -211,13 +211,13 @@ error_routes = {}
 
 
 routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
-error_routes.update(web.json.new_error())
+error_routes.update(fooster.web.json.new_error())
 
 
 def start():
     global http
 
-    http = web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60)
+    http = fooster.web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60)
     http.start()
 
 

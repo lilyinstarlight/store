@@ -3,7 +3,7 @@ import os
 import random
 import string
 
-import db
+import fooster.db
 
 from store import config
 
@@ -29,7 +29,7 @@ def nsfile(namespace):
 
 
 def open(namespace):
-    return db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire', 'locked'])
+    return fooster.db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire', 'locked'])
 
 
 def namespaces():
@@ -102,7 +102,7 @@ def remove(namespace, alias):
             log.storelog.exception()
 
 
-ns_db = db.Database(trunk + 'ns.db', ['namespace'])
+ns_db = fooster.db.Database(trunk + 'ns.db', ['namespace'])
 
 for entry in ns_db:
     namespace_dbs[entry.namespace] = open(entry.namespace)

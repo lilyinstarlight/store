@@ -38,7 +38,7 @@ setup(
     license='MIT',
     author='Foster McLane',
     author_email='fkmclane@gmail.com',
-    install_requires=[],
+    install_requires=['fooster-web', 'fooster-cron', 'fooster-db'],
     packages=find_packages(),
     package_data={'': ['html/*.*', 'res/*.*']},
     entry_points = {'console_scripts': ['store = store.main']},
