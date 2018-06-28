@@ -50,7 +50,7 @@ class Namespace(fooster.web.json.JSONHandler):
 
             return 307, ''
 
-        self.namespace = self.groups[0]
+        self.namespace = self.groups['namespace']
 
         if self.namespace == '':
             self.namespace = '/'
@@ -85,8 +85,8 @@ class Namespace(fooster.web.json.JSONHandler):
 
 class Interface(fooster.web.json.JSONHandler):
     def respond(self):
-        self.namespace = self.groups[0]
-        self.alias = self.groups[1]
+        self.namespace = self.groups['namespace']
+        self.alias = self.groups['alias']
 
         if self.namespace == '':
             self.namespace = '/'
@@ -148,13 +148,13 @@ class Store(fooster.web.HTTPHandler):
         return False
 
     def respond(self):
-        if len(self.groups) == 0:
+        if 'namespace' not in self.groups and 'alias' not in self.groups:
             self.response.headers['Location'] = self.request.resource + '/'
 
             return 307, ''
 
-        self.namespace = self.groups[0]
-        self.alias = self.groups[1]
+        self.namespace = self.groups['namespace']
+        self.alias = self.groups['alias']
 
         self.filename = storage.path + self.namespace + '/' + self.alias
 
@@ -201,8 +201,8 @@ class Store(fooster.web.HTTPHandler):
         return response
 
 
-alias = '([a-zA-Z0-9._-]+)'
-namespace = '([a-zA-Z0-9._/-]*)/'
+alias = '(?P<alias>[a-zA-Z0-9._-]+)'
+namespace = '(?P<namespace>[a-zA-Z0-9._/-]*)/'
 
 http = None
 
