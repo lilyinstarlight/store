@@ -187,7 +187,7 @@ class Store(fooster.web.HTTPHandler):
         if entry.locked and os.path.isfile(self.filename):
             raise fooster.web.HTTPError(403)
 
-        if self.request.headers['Content-Length'] != str(entry.size):
+        if self.request.headers.get('Content-Length') != str(entry.size):
             raise fooster.web.HTTPError(400, status_message='Content-Length Does Not Match Database Size')
 
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
