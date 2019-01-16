@@ -172,7 +172,7 @@ class Store(fooster.web.HTTPHandler):
         if entry.type is not None:
             self.response.headers['Content-Type'] = entry.type
         if entry.filename is not None:
-            self.response.headers['Content-Filename'] = entry.filename
+            self.response.headers['Content-Filename'] = entry.filename.encode(fooster.web.http_encoding, 'ignore')
         self.response.headers['Last-Modified'] = fooster.web.mktime(time.gmtime(entry.date))
         self.response.headers['Expires'] = fooster.web.mktime(time.gmtime(entry.expire))
 
