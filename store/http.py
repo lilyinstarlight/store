@@ -52,6 +52,12 @@ class Namespace(fooster.web.json.JSONHandler):
 
         self.namespace = self.groups['namespace']
 
+        norm_request = fooster.web.file.normpath(self.namespace)
+        if self.namespace != norm_request:
+            self.response.headers.set('Location', '/api' + norm_request)
+
+            return 307, ''
+
         if self.namespace == '':
             self.namespace = '/'
 
@@ -87,6 +93,12 @@ class Interface(fooster.web.json.JSONHandler):
     def respond(self):
         self.namespace = self.groups['namespace']
         self.alias = self.groups['alias']
+
+        norm_request = fooster.web.file.normpath(self.namespace + '/' + self.alias)
+        if self.namespace + '/' + self.alias != norm_request:
+            self.response.headers.set('Location', '/api' + norm_request)
+
+            return 307, ''
 
         if self.namespace == '':
             self.namespace = '/'
@@ -155,6 +167,12 @@ class Store(fooster.web.HTTPHandler):
 
         self.namespace = self.groups['namespace']
         self.alias = self.groups['alias']
+
+        norm_request = fooster.web.file.normpath(self.namespace + '/' + self.alias)
+        if self.namespace + '/' + self.alias != norm_request:
+            self.response.headers.set('Location', '/store' + norm_request)
+
+            return 307, ''
 
         self.filename = storage.path + self.namespace + '/' + self.alias
 
