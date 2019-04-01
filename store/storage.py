@@ -87,7 +87,7 @@ def remove(namespace, alias):
         try:
             os.removedirs(storepath)
         except:
-            log.storelog.exception()
+            log.exception()
 
         del namespace_dbs[namespace]
         del ns_db[namespace]
@@ -99,7 +99,7 @@ def remove(namespace, alias):
         try:
             os.removedirs(os.path.dirname(dbfile))
         except:
-            log.storelog.exception()
+            log.exception()
 
 
 ns_db = fooster.db.Database(trunk + 'ns.db', ['namespace'])

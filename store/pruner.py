@@ -29,7 +29,7 @@ def prune():
         try:
             storage.remove(namespace, alias)
         except:
-            pass
+            log.exception()
 
     log.info('Done. Removed ' + str(len(todo)) + ' items.')
 
