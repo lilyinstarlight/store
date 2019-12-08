@@ -1,5 +1,5 @@
 # address to listen on
-addr = ('', 8080)
+addr = ('', 8000)
 
 # directory to store information
 dir = '/var/lib/store'

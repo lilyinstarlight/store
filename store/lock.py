@@ -20,7 +20,7 @@ def close(self):
                 pass
     except KeyError:
         # do not worry about not being found (NOTE: might leave dangling locks)
-        log.exception()
+        log.exception('ResLock Not Found')
 
     type(self).close(self)
 

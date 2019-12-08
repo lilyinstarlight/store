@@ -1,5 +1,6 @@
 import logging
 import os
+import os.path
 import random
 import string
 
@@ -18,8 +19,6 @@ max_tries = 10
 
 ns_db = None
 
-namespace_dbs = {}
-
 
 def nsfile(namespace):
     if namespace == '/':
@@ -29,48 +28,50 @@ def nsfile(namespace):
 
 
 def open(namespace):
+    if namespace not in ns_db:
+        raise KeyError(namespace)
     return fooster.db.Database(nsfile(namespace), ['alias', 'filename', 'type', 'size', 'date', 'expire', 'locked'])
 
 
 def namespaces():
-    return iter(namespace_dbs)
+    return ns_db.keys()
 
 
 def values(namespace):
-    return iter(namespace_dbs[namespace])
+    return iter(open(namespace))
+
+
+def rand():
+    return ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
 
 
 def create(namespace, alias=None):
-    if namespace not in namespace_dbs:
-        if namespace not in ns_db:
-            ns_db.add(namespace)
-        namespace_dbs[namespace] = open(namespace)
+    if namespace not in ns_db:
+        ns_db.add(namespace)
+    db = open(namespace)
 
     if alias is None:
-        rand = lambda: ''.join(random.choice(string.ascii_lowercase) for _ in range(config.random))
-
         alias = rand()
         count = 1
-        while alias in namespace_dbs[namespace]:
+        while alias in db:
             alias = rand()
             count += 1
 
             if count > max_tries:
                 raise RuntimeError('max tries for random alias generation exceeded')
 
-    return namespace_dbs[namespace].add(alias, '', '', 0, 0, 0)
+    return db.add(alias, '', '', 0, 0, 0)
 
 
 def retrieve(namespace, alias):
-    if namespace not in namespace_dbs and namespace in ns_db:
-        namespace_dbs[namespace] = open(namespace)
-    elif namespace not in ns_db and namespace in namespace_dbs:
-        del namespace_dbs[namespace]
+    db = open(namespace)
 
-    return namespace_dbs[namespace][alias]
+    return db[alias]
 
 
 def remove(namespace, alias):
+    db = open(namespace)
+
     if namespace == '/':
         storepath = path + namespace
     else:
@@ -78,31 +79,35 @@ def remove(namespace, alias):
 
     try:
         os.remove(storepath + alias)
-    except:
-        log.exception()
+    except Exception:
+        log.exception('Caught exception while trying to remove stored file at "' + storepath + alias + '"')
 
-    del namespace_dbs[namespace][alias]
+    del db[alias]
 
-    if len(namespace_dbs[namespace]) == 0:
-        try:
-            os.removedirs(storepath)
-        except:
-            log.exception()
+    if len(db) == 0:
+        storedir = os.path.dirname(storepath)
+        if not os.path.samefile(storedir, path):
+            try:
+                while not os.path.samefile(storedir, path) and len(os.listdir(storedir)) == 0:
+                    os.rmdir(storedir)
+                    storedir = os.path.dirname(storedir)
+            except Exception:
+                log.exception('Caught exception while trying to remove storage directory at "' + storedir + '"')
 
-        del namespace_dbs[namespace]
         del ns_db[namespace]
 
         dbfile = nsfile(namespace)
 
         os.remove(dbfile)
 
-        try:
-            os.removedirs(os.path.dirname(dbfile))
-        except:
-            log.exception()
+        dbdir = os.path.dirname(dbfile)
+        if not os.path.samefile(dbdir, trunk):
+            try:
+                while not os.path.samefile(dbdir, lib) and len(os.listdir(dbdir)) == 0:
+                    os.rmdir(dbdir)
+                    dbdir = os.path.dirname(dbdir)
+            except Exception:
+                log.exception('Caught exception while trying to remove database directory at "' + dbdir + '"')
 
 
 ns_db = fooster.db.Database(trunk + 'ns.db', ['namespace'])
-
-for entry in ns_db:
-    namespace_dbs[entry.namespace] = open(entry.namespace)

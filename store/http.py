@@ -1,9 +1,21 @@
 import os
 import time
 
-import fooster.web, fooster.web.file, fooster.web.json, fooster.web.page
+import fooster.web
+import fooster.web.file
+import fooster.web.json
+import fooster.web.page
 
 from store import config, lock, storage
+
+
+alias = '(?P<alias>[a-zA-Z0-9._-]+)'
+namespace = '(?P<namespace>/[a-zA-Z0-9._/-]*)/'
+
+http = None
+
+routes = {}
+error_routes = {}
 
 
 def create(entry, body, date):
@@ -23,15 +35,17 @@ def create(entry, body, date):
 
 
 def update(entry, body):
-    try:
-        entry.expire = float(body['expire'])
-    except ValueError:
-        raise fooster.web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
+    if 'expire' in body:
+        try:
+            entry.expire = float(body['expire'])
+        except ValueError:
+            raise fooster.web.HTTPError(400, status_message='Time Must Be In Seconds Since The Epoch')
 
-    if not isinstance(body['locked'], bool):
-        raise fooster.web.HTTPError(400, status_message='Locked Must Be A Bool')
+    if 'locked' in body:
+        if not isinstance(body['locked'], bool):
+            raise fooster.web.HTTPError(400, status_message='Locked Must Be A Bool')
 
-    entry.locked = body['locked']
+        entry.locked = body['locked']
 
 
 def output(entry):
@@ -57,9 +71,6 @@ class Namespace(fooster.web.json.JSONHandler):
             self.response.headers.set('Location', '/api' + norm_request)
 
             return 307, ''
-
-        if self.namespace == '':
-            self.namespace = '/'
 
         return super().respond()
 
@@ -99,9 +110,6 @@ class Interface(fooster.web.json.JSONHandler):
             self.response.headers.set('Location', '/api' + norm_request)
 
             return 307, ''
-
-        if self.namespace == '':
-            self.namespace = '/'
 
         return super().respond()
 
@@ -155,12 +163,15 @@ class Interface(fooster.web.json.JSONHandler):
             raise fooster.web.HTTPError(404)
 
 
-class Store(fooster.web.HTTPHandler):
+class Store(fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
+    local = storage.path
+    remote = '/store'
+
     def get_body(self):
         return False
 
     def respond(self):
-        if 'namespace' not in self.groups and 'alias' not in self.groups:
+        if 'namespace' not in self.groups or 'alias' not in self.groups:
             self.response.headers['Location'] = self.request.resource + '/'
 
             return 307, ''
@@ -168,16 +179,7 @@ class Store(fooster.web.HTTPHandler):
         self.namespace = self.groups['namespace']
         self.alias = self.groups['alias']
 
-        norm_request = fooster.web.file.normpath(self.namespace + '/' + self.alias)
-        if self.namespace + '/' + self.alias != norm_request:
-            self.response.headers.set('Location', '/store' + norm_request)
-
-            return 307, ''
-
-        self.filename = storage.path + self.namespace + '/' + self.alias
-
-        if self.namespace == '':
-            self.namespace = '/'
+        self.pathstr = self.namespace + '/' + self.alias
 
         return super().respond()
 
@@ -219,23 +221,14 @@ class Store(fooster.web.HTTPHandler):
         return response
 
 
-alias = '(?P<alias>[a-zA-Z0-9._-]+)'
-namespace = '(?P<namespace>[a-zA-Z0-9._/-]*)/'
-
-http = None
-
-routes = {}
-error_routes = {}
-
-
 routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/api' + namespace + alias: Interface, '/store': Store, '/store' + namespace + alias: Store})
 error_routes.update(fooster.web.json.new_error())
 
 
-def start():
+def start(sync=None):
     global http
 
-    http = fooster.web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60)
+    http = fooster.web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60, sync=sync)
     http.start()
 
 

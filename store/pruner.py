@@ -28,16 +28,16 @@ def prune():
         # remove everything ignoring errors
         try:
             storage.remove(namespace, alias)
-        except:
-            log.exception()
+        except Exception:
+            log.exception('Caught exception while trying to remove alias "' + (namespace + '/' if namespace != '/' else namespace) + alias + '"')
 
     log.info('Done. Removed ' + str(len(todo)) + ' items.')
 
 
-def start():
+def start(sync=None):
     global scheduler
 
-    scheduler = fooster.cron.Scheduler()
+    scheduler = fooster.cron.Scheduler(sync=sync)
     scheduler.add(fooster.cron.Job(prune, minute=config.minute))
     scheduler.start()
 
