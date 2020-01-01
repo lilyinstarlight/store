@@ -12,6 +12,9 @@ http_log = '/var/log/store/http.log'
 import os.path
 template = os.path.dirname(__file__) + '/html'
 
+# maximum file size
+max_size = 33554432 # 32 MB
+
 # minute of hour to prune files
 minute = 9
 

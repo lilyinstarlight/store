@@ -9,6 +9,9 @@ import fooster.web.page
 from store import config, lock, storage
 
 
+fooster.web.file.max_file_size = config.max_size
+
+
 alias = '(?P<alias>[a-zA-Z0-9._-]+)'
 namespace = '(?P<namespace>/[a-zA-Z0-9._/-]*)/'
 
@@ -26,6 +29,9 @@ def create(entry, body, date):
         entry.size = int(body['size'])
     except ValueError:
         raise fooster.web.HTTPError(400, status_message='Size Must Be In Bytes')
+
+    if entry.size > config.max_size:
+        raise fooster.web.HTTPError(413, status_message='Object Too Large')
 
     entry.date = date
 
@@ -91,6 +97,9 @@ class Namespace(fooster.web.json.JSONHandler):
         except KeyError:
             storage.remove(self.namespace, entry.alias)
             raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
+        except fooster.web.HTTPError:
+            storage.remove(self.namespace, entry.alias)
+            raise
 
         if entry.locked:
             lock.acquire(self.request, self.namespace, entry.alias, True)
@@ -141,8 +150,11 @@ class Interface(fooster.web.json.JSONHandler):
             try:
                 create(entry, self.request.body, time.time())
             except KeyError:
-                storage.remove(self.namespace, self.alias)
+                storage.remove(self.namespace, entry.alias)
                 raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
+            except fooster.web.HTTPError:
+                storage.remove(self.namespace, entry.alias)
+                raise
 
             if entry.locked:
                 lock.acquire(self.request, self.namespace, entry.alias, True)
@@ -156,7 +168,7 @@ class Interface(fooster.web.json.JSONHandler):
             if entry.locked:
                 raise fooster.web.HTTPError(403)
 
-            storage.remove(self.namespace, self.alias)
+            storage.remove(self.namespace, entry.alias)
 
             return 204, ''
         except KeyError:
@@ -196,7 +208,7 @@ class Store(fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
         self.response.headers['Last-Modified'] = fooster.web.mktime(time.gmtime(entry.date))
         self.response.headers['Expires'] = fooster.web.mktime(time.gmtime(entry.expire))
 
-        return fooster.web.file.ModifyFileHandler.do_get(self)
+        return super().do_get()
 
     def do_put(self):
         try:
@@ -213,7 +225,7 @@ class Store(fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
         if 'Content-Type' in self.request.headers and self.request.headers['Content-Type'] != entry.type:
             raise fooster.web.HTTPError(400, status_message='Content-Type Does Not Match Database Type')
 
-        response = fooster.web.file.ModifyFileHandler.do_put(self)
+        response = super().do_put()
 
         if entry.locked:
             lock.release(self.request, self.namespace, self.alias, True)
