@@ -1,10 +1,6 @@
 import argparse
 import logging
-import multiprocessing
 import signal
-import sys
-
-import fooster.web
 
 from store import config
 
@@ -15,7 +11,7 @@ def main():
     parser.add_argument('-p', '--port', type=int, dest='port', help='port to bind')
     parser.add_argument('-t', '--template', dest='template', help='template directory to use')
     parser.add_argument('-l', '--log', dest='log', help='log directory to use')
-    parser.add_argument('-m', '--minute', dest='minute', help='minute of hour to prune files')
+    parser.add_argument('-m', '--minute', type=int, dest='minute', help='minute of hour to prune files')
     parser.add_argument('-r', '--random', dest='random', help='number of random characters for auto-generated aliases')
     parser.add_argument('dir', nargs='?', help='directory to store information')
 
@@ -47,42 +43,24 @@ def main():
     if args.dir:
         config.dir = args.dir
 
-
-    # setup logging
-    log = logging.getLogger('store')
-    log.setLevel(logging.INFO)
-    if config.log:
-        log.addHandler(logging.FileHandler(config.log))
-    else:
-        log.addHandler(logging.StreamHandler(sys.stdout))
-
-    if config.http_log:
-        http_log_handler = logging.FileHandler(config.http_log)
-        http_log_handler.setFormatter(fooster.web.HTTPLogFormatter())
-
-        logging.getLogger('http').addHandler(http_log_handler)
+    config._apply()
 
 
-    from store import name, version
+    from store import __version__
     from store import http, pruner
 
-    log.info(name + ' ' + version + ' starting...')
 
-    # ignore SIGINT in manager
-    orig_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
-    sync = multiprocessing.Manager()
-    signal.signal(signal.SIGINT, orig_sigint)
+    log = logging.getLogger('store')
+
+    log.info('store ' + __version__ + ' starting...')
 
     # start everything
-    http.start(sync=sync)
-    pruner.start(sync=sync)
-
+    http.start()
+    pruner.start()
 
     # cleanup function
     def exit(signum, frame):
-        pruner.stop()
         http.stop()
-
 
     # use the function for both SIGINT and SIGTERM
     for sig in signal.SIGINT, signal.SIGTERM:
@@ -90,6 +68,9 @@ def main():
 
     # join against the HTTP server
     http.join()
+
+    # stop pruner
+    pruner.stop()
 
 
 if __name__ == '__main__':

@@ -34,10 +34,10 @@ def prune():
     log.info('Done. Removed ' + str(len(todo)) + ' items.')
 
 
-def start(sync=None):
+def start():
     global scheduler
 
-    scheduler = fooster.cron.Scheduler(sync=sync)
+    scheduler = fooster.cron.Scheduler()
     scheduler.add(fooster.cron.Job(prune, minute=config.minute))
     scheduler.start()
 

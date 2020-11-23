@@ -1,8 +1,5 @@
 import logging
-import multiprocessing
 
-
-global_lock = multiprocessing.Lock()
 
 log = logging.getLogger('store')
 
@@ -30,10 +27,10 @@ def acquire(request, namespace, alias, autorelease=False):
     if not namespace.endswith('/'):
         namespace += '/'
 
-    with global_lock:
+    with request.handler.global_lock:
         # use resource lock to lock stuff
-        request.server.res_lock.acquire(request, '/api' + namespace + alias, False)
-        request.server.res_lock.acquire(request, '/store' + namespace + alias, False)
+        request.server.res_lock.acquire(request, '/api' + namespace + alias, True)
+        request.server.res_lock.acquire(request, '/store' + namespace + alias, True)
 
         # if this lock should autorelease
         if autorelease:
@@ -47,21 +44,21 @@ def acquire(request, namespace, alias, autorelease=False):
                 request.store_locks = [(namespace, alias)]
 
 
-def release(request, namespace, alias, store=False):
+def release(request, namespace, alias):
     # sanitize namespace
     if not namespace.endswith('/'):
         namespace += '/'
 
-    with global_lock:
+    with request.handler.global_lock:
+        # use resource lock to unlock stuff
         try:
-            # use resource lock to unlock stuff
-            request.server.res_lock.release('/api' + namespace + alias, False)
+            request.server.res_lock.release('/api' + namespace + alias, True)
         except RuntimeError:
             # ignore
             pass
 
         try:
-            request.server.res_lock.release('/store' + namespace + alias, False, not store)
+            request.server.res_lock.release('/store' + namespace + alias, True)
         except RuntimeError:
             # ignore
             pass

@@ -1,4 +1,6 @@
+import multiprocessing
 import os
+import sys
 import time
 
 import fooster.web
@@ -16,6 +18,7 @@ alias = '(?P<alias>[a-zA-Z0-9._-]+)'
 namespace = '(?P<namespace>/[a-zA-Z0-9._/-]*)/'
 
 http = None
+global_lock = None
 
 routes = {}
 error_routes = {}
@@ -58,12 +61,18 @@ def output(entry):
     return {'alias': entry.alias, 'filename': entry.filename, 'type': entry.type, 'size': entry.size, 'date': entry.date, 'expire': entry.expire, 'locked': entry.locked}
 
 
+class GlobalLockMixIn:
+    def __init__(self, *args, **kwargs):
+        self.global_lock = kwargs.pop('global_lock', None)
+        super().__init__(*args, **kwargs)
+
+
 class Page(fooster.web.page.PageHandler):
     directory = config.template
     page = 'index.html'
 
 
-class Namespace(fooster.web.json.JSONHandler):
+class Namespace(GlobalLockMixIn, fooster.web.json.JSONHandler):
     def respond(self):
         if not self.request.resource.endswith('/'):
             self.response.headers['Location'] = self.request.resource + '/'
@@ -109,7 +118,7 @@ class Namespace(fooster.web.json.JSONHandler):
         return 201, output(entry)
 
 
-class Interface(fooster.web.json.JSONHandler):
+class Interface(GlobalLockMixIn, fooster.web.json.JSONHandler):
     def respond(self):
         self.namespace = self.groups['namespace']
         self.alias = self.groups['alias']
@@ -175,7 +184,7 @@ class Interface(fooster.web.json.JSONHandler):
             raise fooster.web.HTTPError(404)
 
 
-class Store(fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
+class Store(GlobalLockMixIn, fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
     local = storage.path
     remote = '/store'
 
@@ -227,9 +236,6 @@ class Store(fooster.web.file.ModifyMixIn, fooster.web.file.PathHandler):
 
         response = super().do_put()
 
-        if entry.locked:
-            lock.release(self.request, self.namespace, self.alias, True)
-
         return response
 
 
@@ -237,18 +243,31 @@ routes.update({'/': Page, '/api': Namespace, '/api' + namespace: Namespace, '/ap
 error_routes.update(fooster.web.json.new_error())
 
 
-def start(sync=None):
-    global http
+def start():
+    global http, global_lock
 
-    http = fooster.web.HTTPServer(config.addr, routes, error_routes, timeout=60, keepalive=60, sync=sync)
+    if sys.version_info >= (3, 7):
+        global_lock = multiprocessing.get_context('spawn').Lock()
+    else:
+        global_lock = multiprocessing.get_context('fork').Lock()
+
+    run_routes = {}
+    for route, handler in routes.items():
+        if issubclass(handler, GlobalLockMixIn):
+            run_routes[route] = fooster.web.HTTPHandlerWrapper(handler, global_lock=global_lock)
+        else:
+            run_routes[route] = handler
+
+    http = fooster.web.HTTPServer(config.addr, run_routes, error_routes, timeout=60, keepalive=60)
     http.start()
 
 
 def stop():
-    global http
+    global http, global_lock
 
     http.stop()
     http = None
+    global_lock = None
 
 
 def join():
