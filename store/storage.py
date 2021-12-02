@@ -47,7 +47,8 @@ def rand():
 
 def create(namespace, alias=None):
     if namespace not in ns_db:
-        ns_db.add(namespace)
+        ns_db[namespace] = ns_db.Entry()
+
     db = open(namespace)
 
     if alias is None:
@@ -60,7 +61,10 @@ def create(namespace, alias=None):
             if count > max_tries:
                 raise RuntimeError('max tries for random alias generation exceeded')
 
-    return db.add(alias, '', '', 0, 0, 0)
+    try:
+        return db.add(alias, '', '', 0, 0, 0)
+    except fooster.db.KeyExistsError as err:
+        raise KeyError(alias) from err
 
 
 def retrieve(namespace, alias):

@@ -142,18 +142,6 @@ class Interface(GlobalLockMixIn, fooster.web.json.JSONHandler):
             raise fooster.web.HTTPError(400, status_message='Body Must Be JSON')
 
         try:
-            entry = storage.retrieve(self.namespace, self.alias)
-
-            if entry.locked:
-                raise fooster.web.HTTPError(403)
-
-            try:
-                update(entry, self.request.body)
-            except KeyError:
-                raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
-
-            return 200, output(entry)
-        except KeyError:
             entry = storage.create(self.namespace, self.alias)
 
             try:
@@ -169,6 +157,18 @@ class Interface(GlobalLockMixIn, fooster.web.json.JSONHandler):
                 lock.acquire(self.request, self.namespace, entry.alias, True)
 
             return 201, output(entry)
+        except KeyError:
+            entry = storage.retrieve(self.namespace, self.alias)
+
+            if entry.locked:
+                raise fooster.web.HTTPError(403)
+
+            try:
+                update(entry, self.request.body)
+            except KeyError:
+                raise fooster.web.HTTPError(400, status_message='Not Enough Fields')
+
+            return 200, output(entry)
 
     def do_delete(self):
         try:
